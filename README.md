@@ -35,12 +35,40 @@ This document outlines the full step-by-step process for analyzing student perfo
 
 ### 🔹 3. Feature Engineering (Excel)
 
-* Created `overall_avg_score` (average of 5 subjects)
-* Created `performance_category` (Low/Medium/High) using percentiles:
+**Goal:** Create new attributes that summarize academic performance in a way that models like J48 and Apriori can understand and use effectively.
 
-```excel
-=IF(X2<=69.4, "Low", IF(X2<=80.2, "Medium", "High"))
-```
+* Created `overall_avg_score`: the average of 5 subject scores. This gives a single, meaningful number representing a student's academic performance.
+* Created `performance_category`: a simplified label (Low/Medium/High) based on percentile ranks.
+
+  **Why we needed it:** Machine learning classifiers like J48 work best when the outcome variable (the class) is **categorical**. Since average score is numeric, we transformed it into categories so we could group students and make the model easier to interpret.
+
+  **How we did it in Excel:**
+
+  * Calculated percentiles:
+
+    ```excel
+    =PERCENTILE.EXC(X2:X8297, 0.33)  // returns 69.4
+    =PERCENTILE.EXC(X2:X8297, 0.66)  // returns 80.2
+    ```
+  * Used those thresholds to assign categories:
+
+    ```excel
+    =IF(X2<=69.4, "Low", IF(X2<=80.2, "Medium", "High"))
+    ```
+
+    Where `X2` is the overall average scoreexcel
+    \=PERCENTILE.EXC(X2\:X8297, 0.33)  // returns 69.4
+    \=PERCENTILE.EXC(X2\:X8297, 0.66)  // returns 80.2
+
+    ```
+    ```
+  * Applied this formula for classification:
+
+    ```excel
+    =IF(X2<=69.4, "Low", IF(X2<=80.2, "Medium", "High"))
+    ```
+
+    Where `X2` is the cell containing the overall average score
 
 ### 🔹 4. Dataset Finalization (Excel)
 
@@ -51,17 +79,31 @@ This document outlines the full step-by-step process for analyzing student perfo
 
 ## ⚙️ WEKA Analysis
 
+**Goal:** Perform classification and pattern discovery using clean and structured data. WEKA is a machine learning platform that provides accessible tools for running algorithms such as decision trees and association rule mining without coding. This step covers importing the data, running models, and interpreting the outputs.
+
 ### 🔹 5. Load and Setup
+
+**Purpose:** Load the cleaned dataset into WEKA and specify the target variable.
+
+**Explanation:** Setting the `performance_category` as the class attribute tells WEKA what we are trying to predict. This is required before running any classification algorithm. WEKA uses this column to measure how well different input features explain or predict it.
 
 * Opened `cleaned_bd_students.csv` in WEKA → **Preprocess tab**
 * Set `performance_category` as the **class attribute**
 
 ### 🔹 6. Discretization (for Apriori only)
 
+**Purpose:** Convert numeric attributes into categories (Low, Medium, High) so Apriori can understand and process them.
+
+**Explanation:** Apriori can only process categorical (nominal) values. So we used WEKA’s Discretize filter to divide continuous attributes like `studytime`, `attendance`, and `age` into 3 bins. This allowed Apriori to discover meaningful patterns using these newly categorized versions.
+
 * Applied: `Filters → Unsupervised → Attribute → Discretize`
 * Transformed numerical data into 3 bins (Low, Medium, High)
 
 ### 🔹 7. J48 Decision Tree
+
+**Purpose:** Build a model that classifies students into performance categories using decision rules.
+
+**Explanation:** J48 is an implementation of the C4.5 decision tree algorithm. It splits data based on the most informative attributes first. We used 10-fold cross-validation to make the model more reliable, where the dataset is split into 10 parts — 9 for training and 1 for testing — repeated 10 times.
 
 * Classifier: `trees → J48`
 * Evaluation method: `10-fold cross-validation`
@@ -79,6 +121,10 @@ This document outlines the full step-by-step process for analyzing student perfo
 * Solution: copied tree text → pasted into [WebGraphviz](https://webgraphviz.com)
 
 ### 🔹 8. Apriori Association Rule Mining
+
+**Purpose:** Discover frequent and confident patterns in the dataset to explain common traits of high or low performing students.
+
+**Explanation:** Apriori finds relationships like "If a student is in the Arts group and studies less, they likely perform poorly." These rules are not used to predict outcomes, but to understand **what patterns exist**. We adjusted support and confidence to limit rules to only those with strong statistical backing.
 
 * Menu: `Associations → Apriori`
 * Settings: support ≥ 0.3, confidence ≥ 0.9
