@@ -42,13 +42,15 @@ This document outlines the full step-by-step process for analyzing student perfo
 
   **Why we needed it:** Machine learning classifiers like J48 work best when the outcome variable (the class) is **categorical**. Since average score is numeric, we transformed it into categories so we could group students and make the model easier to interpret.
 
+  **Why we used `PERCENTILE.INC` instead of `PERCENTILE.INC`:** Since we wanted to ensure that no students were excluded from the boundary values (e.g., lowest or highest), and because Excel includes more flexible handling of the full data range, we chose `PERCENTILE.INC` to calculate thresholds. This is especially helpful when you want slightly more inclusive boundaries in educational datasets.
+
   **How we did it in Excel:**
 
   * Calculated percentiles:
+    \=PERCENTILE.EXC(X2\:X8297, 0.33)  // returns 69.4
+    \=PERCENTILE.EXC(X2\:X8297, 0.66)  // returns 80.2
 
-    ```excel
-    =PERCENTILE.EXC(X2:X8297, 0.33)  // returns 69.4
-    =PERCENTILE.EXC(X2:X8297, 0.66)  // returns 80.2
+    ```
     ```
   * Used those thresholds to assign categories:
 
@@ -115,10 +117,13 @@ This document outlines the full step-by-step process for analyzing student perfo
 * `stu_group = Arts` AND `studytime <= 3.5` → Low
 * `attendance > 91` boosts outcomes even with lower studytime
 
-#### ⚠️ Visualization Challenge:
+**Explanation of Key Rules:**
 
-* WEKA doesn’t export tree diagrams
-* Solution: copied tree text → pasted into [WebGraphviz](https://webgraphviz.com)
+* `stu_group = Science`: This means the student is in the Science academic track. Students in Science generally perform better.
+* `studytime <= 5`: If a student studies 5 hours or less per day, it may not be enough for high performance.
+* `attendance <= 91`: If a student's attendance is 91% or lower, they may miss important lessons and fall behind.
+
+These rules form the first 2–3 levels of the decision tree, which cover the broadest and most impactful patterns. That’s why they were selected for simplified interpretation.
 
 ### 🔹 8. Apriori Association Rule Mining
 
@@ -148,10 +153,67 @@ The J48 decision tree achieved high accuracy (96.08%) and revealed clear top-lev
 These variables alone allowed the tree to classify students accurately into Low, Medium, or High performers.
 
 **Why the Top 3 Levels Matter:**
+We chose to focus on the top three levels of the decision tree because:
 
-* They split the data into large, meaningful categories
-* Deeper levels only apply to small subgroups
-* This simplification aligns with the objective of providing actionable insights for educators
+* ✅ **They capture broad patterns**: These first decisions (like group and study time) already separate students into high, medium, or low performers in large chunks.
+* ✅ **They are easy to understand**: Teachers and school staff can make quick interventions using these clear rules (e.g., students in Arts with low study time likely need help).
+* ✅ **Deeper levels become too specific**: Further splits involve combinations like “guardian = father AND mother\_job = Yes,” which only apply to very few students — making them less useful for general school policies.
+
+This simplification aligns with your study's goal: to identify **clear, actionable insights** rather than overfitting with complex rules.
+
+**🔍 Visualizing the Top 3 Levels:**
+To keep the tree simple and focused on general trends, we visualized only the top three splits using WebGraphviz. Here's the simplified structure:
+
+```dot
+digraph StudentPerformanceTopTree {
+  node [shape=box, style=filled, color=lightblue];
+
+  "stu_group?" -> "Arts: Low";
+  "stu_group?" -> "Science";
+  "stu_group?" -> "Commerce (not shown)";
+
+  "Science" -> "studytime > 5: High";
+  "Science" -> "studytime <= 5";
+
+  "studytime <= 5" -> "attendance > 91: High";
+  "studytime <= 5" -> "attendance <= 91 (deeper rules not shown)";
+}
+```
+
+### 🧠 How to Read This Tree
+
+This decision tree shows how a student's **academic group**, **study time**, and **attendance** relate to their predicted performance.
+
+#### 🔹 Step 1: Start with `stu_group?`
+
+* If the student is in **Arts** → they are predicted as **Low performer**
+* If in **Science** → check study time next
+* If in **Commerce** → not shown in this simplified tree
+
+#### 🔹 Step 2: `studytime`
+
+For Science students:
+
+* If they study **more than 5 hours/day** → predicted **High performer**
+* If they study **5 hours or less** → check attendance
+
+#### 🔹 Step 3: `attendance`
+
+For Science students who study ≤ 5 hours:
+
+* If attendance is **above 91%** → predicted **High performer**
+* If attendance is **91% or below** → further rules apply (not shown)
+
+#### ✅ Summary
+
+This tree shows that:
+
+* Arts students generally struggle
+* Science students perform well if they study enough or attend class regularly
+
+This helps educators quickly identify students who may need support or who are likely to succeed.
+
+This simplified view is easy to understand and explains the major routes a student might take based on just a few key attributes.
 
 ### 📌 Apriori Complement
 
@@ -166,6 +228,39 @@ Together:
 * **Apriori** = what combinations lead to certain outcomes
 
 This dual method supports your objective of understanding student performance **and offering practical guidance** to schools.
+
+---
+
+## 📄 Appendix: Expanded J48 Decision Tree (DOT Format)
+
+For deeper analysis, here's the more detailed version of the decision tree that goes beyond the top 3 levels. This format includes more refined conditions and is best used for technical reference or internal review.
+
+```dot
+ digraph J48Tree {
+   node [shape=box];
+
+   "stu_group = Science" -> "studytime <= 5";
+   "stu_group = Science" -> "studytime > 5" [label="else"];
+
+   "studytime <= 5" -> "attendance <= 91";
+   "studytime <= 5" -> "attendance > 91: High";
+
+   "attendance <= 91" -> "studytime <= 3";
+   "attendance <= 91" -> "studytime > 3";
+
+   "studytime <= 3" -> "family_size <= 0: Low";
+   "studytime <= 3" -> "family_size > 0";
+
+   "family_size > 0" -> "school_type = Private: High";
+   "family_size > 0" -> "school_type = Semi_Govt: Medium";
+   "family_size > 0" -> "school_type = Govt";
+
+   "school_type = Govt" -> "father_education = HSC: Medium";
+   "school_type = Govt" -> "father_education = SSC: High";
+ }
+```
+
+To visualize this tree, paste it into [https://webgraphviz.com](https://webgraphviz.com).
 
 ---
 
