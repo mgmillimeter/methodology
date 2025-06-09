@@ -76,6 +76,20 @@ Performed in **Microsoft Excel** for efficiency and visibility:
 | Standardized values     | Unified inconsistent education/job categories (e.g., `hons` → `Honors`) | Prevents model confusion due to fragmented categories              |
 | Fixed corrupted header  | Changed `Ã¥ge` to `age`                                                 | WEKA compatibility and readability                                 |
 
+📌 Summary of Changes:
+
+- Original Rows: 8612
+
+- Final Rows: 8296
+
+- Rows Removed: 316 (due to duplicates and missing values)
+
+- Original Attributes: 24
+
+- Final Attributes: 22
+
+- Attributes Removed: 2 (id, full_name)
+
 **Challenge:** Excel auto-capitalizes entries. Manual search and replace was used to standardize `location` labels.
 
 ---
@@ -84,8 +98,8 @@ Performed in **Microsoft Excel** for efficiency and visibility:
 
 Performed entirely in **Excel**:
 
-* Added 'overall_avg_score' attribute: Calculated as the average of 5 subjects per student.
-* Added 'performance_category': Categorized scores into `Low`, `Medium`, and `High` using **percentiles**:
+* Added `overall_avg_score` attribute: Calculated as the average of 5 subjects per student.
+* Added `performance_category': Categorized scores into `Low`, `Medium`, and `High` using **percentiles**:
 
 #### Excel Calculations:
 
