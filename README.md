@@ -161,102 +161,43 @@ We performed the following key techniques:
 
 ## ⚙️ 5. Interpretation and Evaluation (Knowledge Discovery)
 
-**Goal:** Interpret the models' outputs, validate their effectiveness, and translate them into actionable insights for education decision-making.\*\*
+This stage involves assessing the effectiveness of the models, interpreting the discovered patterns, validating them against domain expectations, and translating those findings into actionable educational strategies.
 
-We assessed the results of J48 and Apriori through accuracy, interpretability, and pattern strength. Patterns were aligned with domain knowledge and existing research findings.
+5.1 Summary of Model Results
 
-To effectively communicate insights:
+The J48 decision tree classifier achieved an accuracy of 96.08%, with balanced precision and recall for all performance categories (High, Medium, Low).
 
-* 📊 We used **10-fold cross-validation** to validate the J48 classifier
-* 📎 Applied **visualization (WebGraphviz)** to make tree-based decisions interpretable
-* 🔍 Compared rules from Apriori with J48 to cross-verify frequent trends
+The Apriori association rule mining algorithm extracted frequent and high-confidence patterns, with rules exhibiting confidence values of 90% or more.
 
-The result was a clear set of recommendations and policy-relevant insights for academic performance improvement.
+5.2 Interpretation of Results
 
-### 🔸 5.1 Loading the Dataset in WEKA
+The top predictors of performance identified by the J48 model include stu_group, studytime, and attendance.
 
-* Opened WEKA → Explorer → Preprocess
-* Loaded `cleaned_bd_students.csv`
-* Set the class attribute to `performance_category`
+Students belonging to the Science group who studied for more than five hours or had attendance above 91% were typically classified as High performers.
 
-### 🔸 5.2 J48 Decision Tree
+Conversely, students in the Arts group with low studytime were most frequently classified under the Low performance category.
 
-(Insert screenshot of J48 configuration and output in WEKA here)
+Apriori rules confirmed these observations. For instance: stu_group = Arts ∧ studytime = Low → performance = Low (confidence: 99%).
 
-* Classifier: `trees → J48`
-* Evaluation: `10-fold cross-validation`
-* Result: ✅ **96.08% accuracy**
+5.3 Alignment with Educational Expectations
 
-#### Top-Level Rules from J48:
+The models’ outcomes align with known academic trends. Prior studies have highlighted time spent studying and attendance as critical success factors.
 
-* `stu_group = Arts` → Low
-* `stu_group = Science AND studytime > 5` → High
-* `attendance > 91` boosts classification to High, even with lower study time
+Group-specific challenges and expectations (e.g., Science vs. Arts) were clearly reflected in the decision paths and association rules.
 
-#### Why Focus on Top 3 Levels:
+5.4 Practical Implications
 
-* These rules cover broad groups and produce actionable insights
-* Deeper rules (e.g., parental job + age) are too specific for school-wide strategy
+The models can assist in early identification of at-risk students, particularly in the Arts stream.
 
-#### Visual Tree (Top-3 Simplified)
+Advising efforts and resource allocation can be more focused — such as assigning mentoring or study programs to students with low engagement.
 
-(Insert screenshot of the WebGraphviz visualization of the simplified J48 decision tree here)
+Attendance tracking may serve as a useful proxy for performance prediction.
 
-```dot
-digraph StudentPerformanceTopTree {
-  node [shape=box, style=filled, color=lightblue];
+5.5 Communication of Findings
 
-  "stu_group?" -> "Arts: Low";
-  "stu_group?" -> "Science";
-  "stu_group?" -> "Commerce (not shown)";
+A simplified decision tree was visualized through WebGraphviz, aiding interpretation for non-technical stakeholders.
 
-  "Science" -> "studytime > 5: High";
-  "Science" -> "studytime <= 5";
-
-  "studytime <= 5" -> "attendance > 91: High";
-  "studytime <= 5" -> "attendance <= 91 (deeper rules not shown)";
-}
-```
----
-**How to Read the Tree:**
-
-1. Start with `stu_group`:
-
-* `Arts` → Low
-
-* `Science` → check `studytime`
-
-* `Commerce` → deeper rules apply
-
-2. If `studytime` > 5 → High performer (`Science`)
-* If `studytime` <= 5 → check `attendance`
-
-3. If `attendance` > 91% → High
-* If `attendance` <= 91% → deeper rules apply (`family size`, `school_type`, etc.)
-
-These top levels capture the main trends. Deeper levels use background details (like parental education or tutoring) for finer prediction.
-
-
-
-### 🔸 5.3 Apriori Rule Mining
-
-(Insert screenshot of Apriori rule output in WEKA here)
-
-* Used `Associations → Apriori`
-* Minimum support: `0.3`
-* Minimum confidence: `0.9`
-* Converted numeric attributes to nominal using `Discretize` filter (3 bins)
-
-#### Top Rules:
-
-* `stu_group = Arts` AND `studytime = Low` → `performance = Low` (99% confidence)
-* `stu_group = Science` AND `studytime = High` → `performance = High` (98% confidence)
-
-**Why use Apriori too?**
-
-* J48 shows **how to classify**.
-* Apriori shows **what patterns commonly occur**.
-* Combined, they give both predictive and descriptive insights.
+The confusion matrix and summary rule tables further supported clarity and validation of results.
 
 ---
 
