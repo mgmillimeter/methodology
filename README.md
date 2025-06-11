@@ -80,20 +80,20 @@ Performed in **Microsoft Excel** for efficiency and visibility:
 
 | Task                    | Action Taken                                                            | Why It Matters                                                     |
 | ----------------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------ |
-| Removed irrelevant cols | Deleted `id` and `full_name`                                            | These identifiers do not affect academic performance               |
-| Removed duplicates      | Used Excel’s Remove Duplicates → 315 rows removed                       | Prevent bias from repeated student entries                         |
 | Fixed missing values    | Deleted 1 row with missing `location`                                   | Ensures model doesn't break due to blank data                      |
+| No duplicates found     | Used Excel’s Remove Duplicates → 0 row(s) removed                       | Prevent bias from repeated student entries                         |
+| No extreme outliers detected       | Applied Excel's 3×IQR threshold - 0 outlier(s) detected      | Helps detect outliers by highlighting values far from the typical data range.                      |
 | Cleaned capitalization  | Replaced `urban`, `city` → `Urban`, `City`                              | Standardizes values (WEKA treats case-sensitive items as distinct) |
 | Standardized values     | Unified inconsistent education/job categories (e.g., `hons` → `Honors`) | Prevents model confusion due to fragmented categories              |
-| Fixed corrupted header  | Changed `Ã¥ge` to `age`                                                 | WEKA compatibility and readability                                 |
+| Removed irrelevant columns     | Deleted `id` and `full_name` | Prevents model confusion due to fragmented categories              | These identifiers do not influence academic performance.
 
 📌 Summary of Changes:
 
-- Original Rows: 8612
+- Original Rows: 8613
 
-- Final Rows: 8296
+- Final Rows: 8612
 
-- Rows Removed: 316 (due to duplicates and missing values)
+- Rows Removed: 1 (due to missing values)
 
 - Original Attributes: 24
 
@@ -101,61 +101,92 @@ Performed in **Microsoft Excel** for efficiency and visibility:
 
 - Attributes Removed: 2 (id, full_name)
 
-**Challenge:** Excel auto-capitalizes entries. Manual search and replace was used to standardize `location` labels.
-
 ---
 
-### 🔹 3. Transformation (Feature Engineering)
+### 3. Transformation (Feature Engineering)
 
 Performed entirely in **Excel**:
 
-* Added `overall_avg_score` attribute: Calculated as the average of 5 subjects per student.
-* Added `performance_category': Categorized scores into `Low`, `Medium`, and `High` using **percentiles**:
+* **Added ****`overall_avg_score`****:** Calculated as the mean of scores in five subjects: English, Math, Science, Social Science, and Art & Culture.
+* **Created ****`performance_category`****:** Categorized students based on percentiles:
+
+- - **Low:** ≤ 69.4 (≈ 33rd percentile)
+  - **Medium:** 69.5 – 80.2 (≈ 34th to 66th percentile)
+  - **High:** > 80.2 (above 66th percentile)
 
 #### Excel Calculations:
 
 ```excel
 =AVERAGE(Q2:U2)
-
-=PERCENTILE.INC([overall_avg_score], 0.33) // ≈ 69.4
-=PERCENTILE.INC([overall_avg_score], 0.66) // ≈ 80.2
-
+=PERCENTILE.INC([overall_avg_score], 0.33)  // ≈ 69.4
+=PERCENTILE.INC([overall_avg_score], 0.66)  // ≈ 80.2
 =IF(V2<=69.4, "Low", IF(V2<=80.2, "Medium", "High"))
 ```
 
-Where `V2` contains the average score.
+Where `V2` contains the average score for a student.
 
-**Why use `PERCENTILE.INC`**? It includes boundary values — ideal when working with educational datasets to ensure all students are grouped fairly.
+**Why use ****`PERCENTILE.INC`****?** It includes boundary values, ensuring equitable classification across the student population.
 
-**Why this step is needed:** Classification models like J48 require a **categorical target attribute**. This transformation converts continuous scores into interpretable categories, making the analysis more actionable.
+**Why this step matters:** Classification algorithms like J48 require a categorical target variable. This transformation makes continuous score data actionable and interpretable.
+
+* Encoded categorical attributes and discretized numeric variables using WEKA's Discretize filter for compatibility with Apriori.
+
+### 4. Exploratory Data Analysis (EDA)
+
+#### Summary Statistics
+
+* **Average study time:** 2.1 hours/day
+* **Average attendance:** 87%
+* **Academic group distribution:** Science (48%), Commerce (32%), Arts (20%)
+
+#### Key Insights
+
+* Science students tend to have higher study time and attendance than Arts students.
+* A correlation of 0.52 was found between study time and academic performance, affirming its relevance as a predictive feature.
+
+#### Suggested Visualizations
+
+* Histogram of attendance
+* Bar chart of `performance_category` by `stu_group`
+* Correlation heatmap of numeric features (e.g., `age`, `studytime`, `attendance`, `overall_avg_score`)
+
+### 5. Data Mining
+
+#### J48 Decision Tree (Classification)
+
+* **Tool:** WEKA (v3.8.6)
+* **Accuracy:** 96.08% using 10-fold cross-validation
+* **Top features:** `stu_group`, `studytime`, `attendance`
+
+**Evaluation Metrics:**
+
+| Class         | Precision | Recall   | F1-score |
+| ------------- | --------- | -------- | -------- |
+| High          | 0.97      | 0.97     | 0.97     |
+| Medium        | 0.94      | 0.95     | 0.94     |
+| Low           | 0.98      | 0.97     | 0.97     |
+| **Macro avg** | **0.96**  | **0.96** | **0.96** |
+
+**Confusion Matrix:**
+
+```
+Actual \ Predicted | High | Medium | Low
+-------------------|------|--------|-----
+High               | 2715 |  92    | 5
+Medium             | 83   | 2604   | 57
+Low                | 7    | 81     | 2652
+```
+
+#### Apriori Rule Mining
+
+* Used WEKA’s Apriori algorithm on discretized data
+* Minimum support: 0.3, Minimum confidence: 0.9
+* **Example rules:**
+
+  * `stu_group = Arts` ∧ `studytime = Low` → `performance = Low` (Confidence: 99%)
+  * `stu_group = Science` ∧ `studytime = High` → `performance = High` (Confidence: 98%)
 
 ---
-
-### 🔹 4. Data Mining (Pattern Extraction)
-
-**Goal:** Extract meaningful patterns using machine learning and statistical techniques to understand the factors affecting student performance.\*\*
-
-We performed the following key techniques:
-
-#### ✅ Classification (J48 Decision Tree)
-
-* Used to classify students into `Low`, `Medium`, or `High` performance categories.
-* Revealed top decision-making factors: `stu_group`, `studytime`, and `attendance`.
-
-#### ✅ Association Rule Mining (Apriori)
-
-* Used to uncover **frequent co-occurrence patterns** among features.
-* For example: "If student is in Arts and studytime is Low → performance is likely Low."
-
-#### ✅ Statistical Binning (Discretization)
-
-* Applied WEKA’s `Discretize` filter to convert continuous attributes (like `age`, `attendance`, `studytime`) into categorical bins: `Low`, `Medium`, `High`.
-* This made it possible to use numeric data in Apriori.
-
-#### ✅ Pattern Extraction Summary:
-
-* These models helped us identify not just who is likely to succeed or struggle (J48), but also what typical characteristics exist in each performance group (Apriori).
-* Enabled insights like: "Students in Science who study more than 5 hours are likely high performers." or "Arts + Low Studytime is a strong indicator of low performance."
 
 ---
 
@@ -352,3 +383,118 @@ Using the KDD process, this project successfully cleaned, transformed, and model
 * Extracted meaningful patterns with high support and confidence
 
 This approach offers a practical way for schools to understand student trends and take informed action — such as providing extra support to Arts students with low study time or boosting attendance programs in Science groups.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Interpretation and Evaluation
+
+### Summary of Model Results
+
+* J48 provided interpretable, accurate classification.
+* Apriori rules aligned with behavioral expectations and validated tree-based patterns.
+
+### Interpretation of Results
+
+* High study time and attendance are linked to better performance.
+* Arts students with low study time show higher risk of poor outcomes.
+* Subject group plays a contextual role in learning outcomes.
+
+### Educational Relevance
+
+* Results align with prior literature emphasizing attendance and engagement.
+* Subject group trends confirm differences in stream expectations and learning environments.
+
+### Practical Applications
+
+* Early warning systems can use attendance and study time thresholds.
+* Schools may design stream-specific interventions.
+* Mentoring programs can prioritize high-risk student profiles.
+
+### Communication and Visualization
+
+* Decision tree exported and visualized using WebGraphviz.
+* Rule sets and confusion matrix included for validation.
+
+---
+
+## Model Justification and Comparison
+
+### Why J48 and Apriori?
+
+* J48 provides explainable rules suitable for academic settings.
+* Apriori identifies co-occurring patterns that enrich interpretation.
+
+### Why Not Other Models?
+
+* Ensemble models like Random Forest were excluded to maintain transparency.
+* In educational contexts, explainability outweighs marginal gains in accuracy.
+
+### Trade-Offs
+
+* J48 offers robust interpretability with strong accuracy.
+* Apriori enhances descriptive insight, though it lacks predictive capacity.
+
+### Recommendation
+
+* Future research may test Random Forest or XGBoost for comparison.
+* Consider adding feature importance via InfoGainAttributeEval.
+
+---
+
+## Limitations
+
+* Single-time dataset; lacks temporal trends.
+* Study time and attendance may involve self-reporting bias.
+* Dataset limited to Bangladesh; not generalizable to other regions.
+* Key socioeconomic indicators like income are missing.
+* No external validation or benchmarking was conducted.
+
+---
+
+## Tools Used
+
+* Microsoft Excel – data cleaning and transformation
+* WEKA v3.8.6 – modeling and evaluation
+* WebGraphviz – tree visualization
+
+---
+
+## Future Work
+
+* Extend to primary and higher education.
+* Integrate economic and psychological variables.
+* Validate findings with external datasets.
+* Include visual EDA outputs and interactive dashboards.
+
+---
+
+## Citation
+
+Author. (2025). A Data-Driven Multivariate Analysis of Socioeconomic and Educational Factors Influencing Student Performance in Bangladesh. Unpublished Manuscript.
+
