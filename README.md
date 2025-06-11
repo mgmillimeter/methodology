@@ -85,7 +85,8 @@ Performed in **Microsoft Excel** for efficiency and visibility:
 | No extreme outliers detected       | Applied Excel's 3×IQR threshold - 0 outlier(s) detected      | Helps detect outliers by highlighting values far from the typical data range.                      |
 | Cleaned capitalization  | Replaced `urban`, `city` → `Urban`, `City`                              | Standardizes values (WEKA treats case-sensitive items as distinct) |
 | Standardized values     | Unified inconsistent education/job categories (e.g., `hons` → `Honors`) | Prevents model confusion due to fragmented categories              |
-| Removed irrelevant columns     | Deleted `id` and `full_name` | Prevents model confusion due to fragmented categories              | These identifiers do not influence academic performance.
+| Removed irrelevant attributes    | Deleted `id` and `full_name` | Prevents model confusion due to fragmented categories              | These identifiers do not influence academic performance.|
+| Removed zero variance attribute  | Deleted `gender`                     | Non-informative for classification, as it fails to distinguish between classes (All Male).                         |
 
 📌 Summary of Changes:
 
@@ -97,9 +98,9 @@ Performed in **Microsoft Excel** for efficiency and visibility:
 
 - Original Attributes: 24
 
-- Final Attributes: 22
+- Final Attributes: 21
 
-- Attributes Removed: 2 (id, full_name)
+- Attributes Removed: 2 (id, full_name, gender)
 
 ---
 
