@@ -87,6 +87,7 @@ Performed in **Microsoft Excel** for efficiency and visibility:
 | Standardized values     | Unified inconsistent education/job categories (e.g., `hons` → `Honors`) | Prevents model confusion due to fragmented categories              |
 | Removed irrelevant attributes    | Deleted `id` and `full_name` | Prevents model confusion due to fragmented categories              | These identifiers do not influence academic performance.|
 | Removed zero variance attribute  | Deleted `gender`                     | Non-informative for classification, as it fails to distinguish between classes (All Male).                         |
+| Removed target leakage attribute  | Deleted `stu_group`                     | Training on this data leads to optimistically biased accuracy estimates but poor out-of-sample performance.    |
 
 📌 Summary of Changes:
 
@@ -98,9 +99,9 @@ Performed in **Microsoft Excel** for efficiency and visibility:
 
 - Original Attributes: 24
 
-- Final Attributes: 21
+- Final Attributes: 20
 
-- Attributes Removed: 2 (id, full_name, gender)
+- Attributes Removed: 4 (`id`, `full_name`, `gender`, `stu_group`)
 
 ---
 
